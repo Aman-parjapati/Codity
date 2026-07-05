@@ -142,7 +142,7 @@ async function handleJobFailure(job, errorMessage, durationMs) {
   const maxRetries = job.max_retries;
 
   try {
-    const aiSummary = generateAiFailureSummary(job.name, errorMessage);
+    const aiSummary = await generateAiFailureSummary(job.name, errorMessage);
 
     if (currentRetry < maxRetries) {
       const delaySeconds = await calculateRetryDelay(job.retry_policy_id, currentRetry);
@@ -229,16 +229,23 @@ async function pollAndClaimJob() {
 
   try {
     claimedJob = await db.transaction(async (conn) => {
-      // A. Fetch active queues and running job counts to verify which queues are within limits
+      // A. Fetch active queues, concurrency loads, and rate limit statistics
       const [queues] = await conn.query(`
-        SELECT q.id, q.concurrency_limit, 
-          (SELECT COUNT(*) FROM jobs run_j WHERE run_j.queue_id = q.id AND run_j.status = 'running') as running_count
+        SELECT q.id, q.concurrency_limit, q.rate_limit_per_min,
+          (SELECT COUNT(*) FROM jobs run_j WHERE run_j.queue_id = q.id AND run_j.status = 'running') as running_count,
+          (SELECT COUNT(*) FROM job_executions je 
+           JOIN jobs j ON je.job_id = j.id 
+           WHERE j.queue_id = q.id AND je.started_at >= DATE_SUB(NOW(), INTERVAL 1 MINUTE)) as recent_executions_count
         FROM queues q
         WHERE q.is_paused = FALSE
       `);
 
       const eligibleQueueIds = queues
-        .filter(q => q.running_count < q.concurrency_limit)
+        .filter(q => {
+          const concurrencyOk = q.running_count < q.concurrency_limit;
+          const rateLimitOk = q.rate_limit_per_min === null || q.recent_executions_count < q.rate_limit_per_min;
+          return concurrencyOk && rateLimitOk;
+        })
         .map(q => q.id);
 
       if (eligibleQueueIds.length === 0) return null;

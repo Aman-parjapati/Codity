@@ -67,7 +67,7 @@ export async function executeJob(job, executionId, logFn) {
  * @param {string} errorMessage 
  * @returns {string} - Markdown diagnostic
  */
-export function generateAiFailureSummary(jobName, errorMessage) {
+function generateLocalFailureSummary(jobName, errorMessage) {
   const time = new Date().toISOString();
   
   let explanation = `### 🤖 AI Diagnostic Summary
@@ -106,4 +106,50 @@ This error typically indicates that:`;
 3. **Endpoint Check**: Ping the status endpoint of the downstream API to check for general outage.`;
 
   return explanation;
+}
+
+/**
+ * Generate AI explanation for failed executions (Real Gemini API call with local fallback)
+ * @param {string} jobName 
+ * @param {string} errorMessage 
+ * @returns {Promise<string>} - Markdown diagnostic
+ */
+export async function generateAiFailureSummary(jobName, errorMessage) {
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (!geminiKey) {
+    return generateLocalFailureSummary(jobName, errorMessage);
+  }
+
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
+    const prompt = `You are a DevOps diagnostics AI bot. Analyze this background task failure:
+Job Name: "${jobName}"
+Error Message: "${errorMessage}"
+
+Generate a short, professional diagnostics report in markdown. Include a "🔍 Root Cause Analysis" section and "💡 Recommended Actions" bullet points. Do not include introductory notes, start directly with the analysis.`;
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }]
+      })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (text) {
+        return `### 🤖 AI Diagnostic Summary\n\n${text}`;
+      }
+    }
+  } catch (error) {
+    console.error('Failed to generate real Gemini AI failure summary:', error);
+  }
+
+  return generateLocalFailureSummary(jobName, errorMessage);
 }

@@ -1,7 +1,7 @@
 import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import db from '../../../shared/db.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, requireOrgRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -61,7 +61,7 @@ router.get('/retry-policies', authenticateToken, async (req, res) => {
 });
 
 // Create new queue
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', authenticateToken, requireOrgRole(['owner', 'admin']), async (req, res) => {
   const { project_id, name, priority, concurrency_limit, retry_policy_id, rate_limit_per_min } = req.body;
   const orgId = req.user.organizationId;
 
@@ -108,7 +108,7 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // Update queue settings
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', authenticateToken, requireOrgRole(['owner', 'admin']), async (req, res) => {
   const { id } = req.params;
   const { priority, concurrency_limit, retry_policy_id, is_paused, rate_limit_per_min } = req.body;
   const orgId = req.user.organizationId;
@@ -146,7 +146,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 });
 
 // Pause queue
-router.post('/:id/pause', authenticateToken, async (req, res) => {
+router.post('/:id/pause', authenticateToken, requireOrgRole(['owner', 'admin']), async (req, res) => {
   const { id } = req.params;
   const orgId = req.user.organizationId;
   try {
@@ -170,7 +170,7 @@ router.post('/:id/pause', authenticateToken, async (req, res) => {
 });
 
 // Resume queue
-router.post('/:id/resume', authenticateToken, async (req, res) => {
+router.post('/:id/resume', authenticateToken, requireOrgRole(['owner', 'admin']), async (req, res) => {
   const { id } = req.params;
   const orgId = req.user.organizationId;
   try {
@@ -243,7 +243,7 @@ router.get('/:id/stats', authenticateToken, async (req, res) => {
 });
 
 // Delete queue
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateToken, requireOrgRole(['owner', 'admin']), async (req, res) => {
   const { id } = req.params;
   const orgId = req.user.organizationId;
   try {

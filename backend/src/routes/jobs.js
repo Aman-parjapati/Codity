@@ -2,7 +2,7 @@ import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import parser from 'cron-parser';
 import db from '../../../shared/db.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, requireOrgRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -272,7 +272,7 @@ router.post('/batch', authenticateToken, async (req, res) => {
 });
 
 // Trigger retry for failed/DLQ job
-router.post('/:id/retry', authenticateToken, async (req, res) => {
+router.post('/:id/retry', authenticateToken, requireOrgRole(['owner', 'admin']), async (req, res) => {
   const { id } = req.params;
   const orgId = req.user.organizationId;
 
@@ -319,7 +319,7 @@ router.post('/:id/retry', authenticateToken, async (req, res) => {
 });
 
 // Cancel/Delete job
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateToken, requireOrgRole(['owner', 'admin']), async (req, res) => {
   const { id } = req.params;
   const orgId = req.user.organizationId;
 

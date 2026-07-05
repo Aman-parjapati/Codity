@@ -25,3 +25,20 @@ export function authenticateToken(req, res, next) {
     next();
   });
 }
+
+/**
+ * Middleware to restrict route operations by organization role
+ * @param {string[]} allowedRoles - Roles allowed to perform the action
+ */
+export function requireOrgRole(allowedRoles) {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    const role = req.user.orgRole; // 'owner', 'admin', 'member'
+    if (!allowedRoles.includes(role)) {
+      return res.status(403).json({ error: `Forbidden: Role '${role}' does not have permission to perform this action.` });
+    }
+    next();
+  };
+}
