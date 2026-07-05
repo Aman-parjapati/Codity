@@ -1,0 +1,32 @@
+{
+  "name": "distributed-job-scheduler",
+  "version": "1.0.0",
+  "description": "Production-inspired Distributed Job Scheduler",
+  "main": "backend/src/index.js",
+  "type": "module",
+  "scripts": {
+    "db:init": "node shared/init-db.js",
+    "start:backend": "nodemon backend/src/index.js",
+    "start:worker": "nodemon worker/src/index.js",
+    "start:frontend": "npm run --prefix frontend dev",
+    "install:all": "npm install && npm install --prefix frontend",
+    "start:all": "concurrently \"npm run start:backend\" \"npm run start:worker\" \"npm run start:frontend\"",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js backend/tests"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "cron-parser": "^4.9.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.10.1",
+    "uuid": "^9.0.1",
+    "ws": "^8.17.1"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.4"
+  }
+}

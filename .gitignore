@@ -1,0 +1,22 @@
+# Dependency directories
+node_modules/
+frontend/node_modules/
+
+# Environment configurations
+.env
+.env.local
+.env.*.local
+
+# Build directories
+dist/
+frontend/dist/
+
+# System / IDE temporary directories
+.system_generated/
+.idea/
+.vscode/
+*.log
+
+# OS metadata files
+.DS_Store
+Thumbs.db
